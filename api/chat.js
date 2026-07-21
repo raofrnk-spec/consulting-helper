@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // 允许前端跨域调用
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -10,7 +9,6 @@ export default async function handler(req, res) {
   const { message } = req.body;
   
   try {
-    // 调用 Coze v3/chat API（正确的官方接口）
     const response = await fetch('https://api.coze.cn/v3/chat', {
       method: 'POST',
       headers: {
@@ -32,32 +30,31 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+    console.log('Coze API Response:', JSON.stringify(data, null, 2));
     
-    // 从响应中提取回答（Coze v3 返回格式）
-    // 非流式响应会在 data 中包含消息列表
-    let reply = '';
-    let sources = [];
-    
-    if (data.data && data.data.messages) {
-      // 找到 type=answer 的消息
-      const answerMsg = data.data.messages.find(m => m.type === 'answer');
-      if (answerMsg) {
-        reply = answerMsg.content;
-      }
-    } else if (data.data && data.data.content) {
-      reply = data.data.content;
-    } else if (data.msg) {
-      // 如果有错误信息
-      reply = 'API 错误：' + data.msg;
+    // 调试：直接把原始返回给前端，让我们看到格式
+    if (!data.data || !data.data.messages) {
+      return res.status(200).json({ 
+        reply: '调试信息：API 返回格式如下，请截图发给开发者：\n\n' + JSON.stringify(data, null, 2),
+        sources: []
+      });
     }
     
-    if (reply) {
-      res.status(200).json({ reply, sources });
-    } else {
-      res.status(200).json({ reply: '获取回答失败，API 返回格式异常。', sources: [] });
+    const answerMsg = data.data.messages.find(m => m.type === 'answer');
+    if (answerMsg && answerMsg.content) {
+      return res.status(200).json({ reply: answerMsg.content, sources: [] });
     }
+    
+    return res.status(200).json({ 
+      reply: '调试：找到 messages 但没有 answer 类型。返回数据：\n\n' + JSON.stringify(data.data.messages, null, 2),
+      sources: []
+    });
+    
   } catch (error) {
     console.error('API Error:', error);
-    res.status(200).json({ reply: '服务暂时不可用，请稍后重试。', sources: [] });
+    return res.status(200).json({ 
+      reply: '服务错误：' + error.message,
+      sources: []
+    });
   }
 }
