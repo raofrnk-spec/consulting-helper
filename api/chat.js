@@ -45,10 +45,10 @@ export default async function handler(req, res) {
     const chatId = createData.data.id;           // 对话ID
     const conversationId = createData.data.conversation_id; // 会话ID
     
-    // ========== 第二步：轮询查询状态（最多等20秒） ==========
+    // ========== 第二步：轮询查询状态（最多等40秒） ==========
     let answer = '';
     let attempts = 0;
-    const maxAttempts = 20; // 最多轮询20次，每次1秒，共20秒
+    const maxAttempts = 40; // 最多轮询40次，每次1秒，共40秒
     
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 1000)); // 等1秒
