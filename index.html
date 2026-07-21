@@ -47,17 +47,10 @@
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
 
-    function addMessage(content, isUser, sources) {
+    function addMessage(content, isUser) {
       const div = document.createElement('div');
       div.className = `message ${isUser ? 'user' : 'ai'}`;
-      let sourceHtml = '';
-      if (sources && sources.length) {
-        sourceHtml = `<div class="source-tag">来源：${sources.join('、')}</div>`;
-      }
-      div.innerHTML = `
-        <div class="avatar">${isUser ? '我' : '咨'}</div>
-        <div class="bubble">${content}${sourceHtml}</div>
-      `;
+      div.innerHTML = `<div class="avatar">${isUser ? '我' : '咨'}</div><div class="bubble">${content}</div>`;
       chatContainer.appendChild(div);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
@@ -66,10 +59,7 @@
       const div = document.createElement('div');
       div.className = 'message ai';
       div.id = 'loadingMsg';
-      div.innerHTML = `
-        <div class="avatar">咨</div>
-        <div class="bubble loading">正在查阅知识库...</div>
-      `;
+      div.innerHTML = `<div class="avatar">咨</div><div class="bubble loading">正在查阅知识库...</div>`;
       chatContainer.appendChild(div);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
@@ -82,7 +72,6 @@
     async function sendMessage() {
       const text = userInput.value.trim();
       if (!text) return;
-
       addMessage(text, true);
       userInput.value = '';
       sendBtn.disabled = true;
@@ -94,12 +83,10 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: text })
         });
-        
         const data = await response.json();
         removeLoading();
-        
         if (data.reply) {
-          addMessage(data.reply, false, data.sources);
+          addMessage(data.reply, false);
         } else {
           addMessage('抱歉，获取回答失败，请稍后重试。', false);
         }
@@ -107,7 +94,6 @@
         removeLoading();
         addMessage('网络错误，请检查连接后重试。', false);
       }
-      
       sendBtn.disabled = false;
       userInput.focus();
     }
