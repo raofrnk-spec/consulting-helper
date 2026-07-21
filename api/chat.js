@@ -9,7 +9,8 @@ export default async function handler(req, res) {
   const { message } = req.body;
   
   try {
-    const response = await fetch('https://api.coze.cn/v3/chat', {
+    // 第一步：创建对话任务
+    const createRes = await fetch('https://api.coze.cn/v3/chat', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.COZE_TOKEN}`,
@@ -29,26 +30,56 @@ export default async function handler(req, res) {
       }),
     });
 
-    const data = await response.json();
-    console.log('Coze API Response:', JSON.stringify(data, null, 2));
+    const createData = await createRes.json();
     
-    // 调试：直接把原始返回给前端，让我们看到格式
-    if (!data.data || !data.data.messages) {
+    if (!createData.data || !createData.data.conversation_id) {
       return res.status(200).json({ 
-        reply: '调试信息：API 返回格式如下，请截图发给开发者：\n\n' + JSON.stringify(data, null, 2),
+        reply: '创建对话失败：' + JSON.stringify(createData),
         sources: []
       });
     }
+
+    const conversationId = createData.data.conversation_id;
     
-    const answerMsg = data.data.messages.find(m => m.type === 'answer');
-    if (answerMsg && answerMsg.content) {
-      return res.status(200).json({ reply: answerMsg.content, sources: [] });
+    // 第二步：轮询查询结果（最多等 15 秒）
+    let answer = '';
+    let attempts = 0;
+    const maxAttempts = 15;
+    
+    while (attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 等 1 秒
+      
+      const queryRes = await fetch(`https://api.coze.cn/v3/chat?conversation_id=${conversationId}&bot_id=7664644185815515186`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.COZE_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const queryData = await queryRes.json();
+      
+      if (queryData.data && queryData.data.status === 'completed') {
+        // 找到 answer 类型的消息
+        const messages = queryData.data.messages || [];
+        const answerMsg = messages.find(m => m.type === 'answer');
+        if (answerMsg && answerMsg.content) {
+          answer = answerMsg.content;
+          break;
+        }
+      }
+      
+      attempts++;
     }
     
-    return res.status(200).json({ 
-      reply: '调试：找到 messages 但没有 answer 类型。返回数据：\n\n' + JSON.stringify(data.data.messages, null, 2),
-      sources: []
-    });
+    if (answer) {
+      return res.status(200).json({ reply: answer, sources: [] });
+    } else {
+      return res.status(200).json({ 
+        reply: '抱歉，AI 处理时间较长，请稍后重试。',
+        sources: []
+      });
+    }
     
   } catch (error) {
     console.error('API Error:', error);
