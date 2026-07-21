@@ -1,102 +1,228 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>咨询求职小助手</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f5f5f5; height: 100vh; display: flex; flex-direction: column; }
-    .header { background: #2563eb; color: white; padding: 16px 24px; text-align: center; font-size: 18px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .chat-container { flex: 1; overflow-y: auto; padding: 20px; max-width: 800px; width: 100%; margin: 0 auto; }
-    .message { margin-bottom: 16px; display: flex; align-items: flex-start; animation: fadeIn 0.3s ease; }
-    .message.user { flex-direction: row-reverse; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; color: white; }
-    .message.ai .avatar { background: #2563eb; margin-right: 12px; }
-    .message.user .avatar { background: #10b981; margin-left: 12px; }
-    .bubble { max-width: 70%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.6; word-break: break-word; }
-    .message.ai .bubble { background: white; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    .message.user .bubble { background: #2563eb; color: white; border-bottom-right-radius: 4px; }
-    .loading { color: #999; font-size: 13px; padding: 8px 0; }
-    .input-area { background: white; border-top: 1px solid #e5e7eb; padding: 16px 24px; }
-    .input-wrapper { max-width: 800px; margin: 0 auto; display: flex; gap: 12px; }
-    input { flex: 1; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 24px; font-size: 14px; outline: none; transition: border-color 0.2s; }
-    input:focus { border-color: #2563eb; }
-    button { padding: 12px 24px; background: #2563eb; color: white; border: none; border-radius: 24px; font-size: 14px; cursor: pointer; transition: all 0.2s; font-weight: 500; }
-    button:hover { background: #1d4ed8; transform: translateY(-1px); }
-    button:disabled { background: #93c5fd; cursor: not-allowed; transform: none; }
-    .welcome { text-align: center; color: #999; margin: 40px 0; font-size: 14px; }
-    .source-tag { font-size: 11px; color: #94a3b8; margin-top: 6px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>咨询求职小助手 - 基于真实从业者分享的AI求职顾问</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #f8fafc 100%); }
+        .hover-lift { transition: transform 0.2s, box-shadow 0.2s; }
+        .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1); }
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
-<body>
-  <div class="header">咨询求职小助手 · 基于 50+ 位真实从业者分享</div>
-  <div class="chat-container" id="chatContainer">
-    <div class="welcome">👋 你好！我是你的咨询行业求职顾问。你可以问我关于进入门槛、成长路径、工作体验、行业现状或薪资性价比的问题。</div>
-  </div>
-  <div class="input-area">
-    <div class="input-wrapper">
-      <input type="text" id="userInput" placeholder="输入你的问题，例如：咨询行业现在还值得进吗？" onkeypress="if(event.key==='Enter')sendMessage()">
-      <button id="sendBtn" onclick="sendMessage()">发送</button>
-    </div>
-  </div>
+<body class="text-slate-800 antialiased">
 
-  <script>
-    const chatContainer = document.getElementById('chatContainer');
-    const userInput = document.getElementById('userInput');
-    const sendBtn = document.getElementById('sendBtn');
+    <!-- 导航栏 -->
+    <nav class="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 z-50">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">咨</div>
+                <span class="font-semibold text-slate-900">咨询求职小助手</span>
+            </div>
+            <div class="flex items-center gap-6">
+                <a href="#about" class="text-slate-600 hover:text-blue-600 text-sm font-medium transition">关于原理</a>
+                <a href="#chat-section" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">立即体验</a>
+            </div>
+        </div>
+    </nav>
 
-    function addMessage(content, isUser) {
-      const div = document.createElement('div');
-      div.className = `message ${isUser ? 'user' : 'ai'}`;
-      div.innerHTML = `<div class="avatar">${isUser ? '我' : '咨'}</div><div class="bubble">${content}</div>`;
-      chatContainer.appendChild(div);
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
+    <!-- Hero 首屏 -->
+    <section class="gradient-bg min-h-screen flex items-center justify-center pt-16">
+        <div class="max-w-4xl mx-auto px-6 text-center fade-in">
+            <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-sm font-medium mb-6">
+                <span class="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
+                已收录 50+ 位真实从业者分享
+            </div>
+            <h1 class="text-4xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
+                咨询行业求职<br>
+                <span class="text-blue-600">3 分钟搞清楚</span>
+            </h1>
+            <p class="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-8 leading-relaxed">
+                基于 MBB、四大、精品咨询从业者真实分享，AI 结构化呈现进入门槛、成长路径、工作体验与行业现状
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+                <a href="#chat-section" class="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:bg-blue-700 hover-lift transition text-lg">
+                    开始对话
+                </a>
+                <a href="#about" class="bg-white text-slate-700 border border-slate-300 px-8 py-3.5 rounded-xl font-semibold hover:border-slate-400 hover-lift transition text-lg">
+                    了解原理
+                </a>
+            </div>
+            <p class="text-sm text-slate-500 flex items-center justify-center gap-4 flex-wrap">
+                <span class="flex items-center gap-1">✅ 信息来源可追溯</span>
+                <span class="flex items-center gap-1">✅ 多维度交叉验证</span>
+                <span class="flex items-center gap-1">✅ 持续更新</span>
+            </p>
+        </div>
+    </section>
 
-    function addLoading() {
-      const div = document.createElement('div');
-      div.className = 'message ai';
-      div.id = 'loadingMsg';
-      div.innerHTML = `<div class="avatar">咨</div><div class="bubble loading">正在查阅知识库...</div>`;
-      chatContainer.appendChild(div);
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
+    <!-- 信任背书 -->
+    <section class="bg-slate-50 py-16">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-8 rounded-2xl text-center hover-lift">
+                    <div class="text-3xl font-bold text-blue-600 mb-2">50+</div>
+                    <div class="text-slate-600 font-medium">真实从业者分享</div>
+                    <div class="text-slate-400 text-sm mt-1">来自小红书、脉脉、知乎</div>
+                </div>
+                <div class="bg-white p-8 rounded-2xl text-center hover-lift">
+                    <div class="text-3xl font-bold text-blue-600 mb-2">5</div>
+                    <div class="text-slate-600 font-medium">大维度结构化分析</div>
+                    <div class="text-slate-400 text-sm mt-1">门槛、路径、体验、现状、薪资</div>
+                </div>
+                <div class="bg-white p-8 rounded-2xl text-center hover-lift">
+                    <div class="text-3xl font-bold text-blue-600 mb-2">100%</div>
+                    <div class="text-slate-600 font-medium">来源标注</div>
+                    <div class="text-slate-400 text-sm mt-1">每句话都可追溯到原始帖子</div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-    function removeLoading() {
-      const loading = document.getElementById('loadingMsg');
-      if (loading) loading.remove();
-    }
+    <!-- 对话交互区 -->
+    <section id="chat-section" class="py-20 bg-white">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-slate-900 mb-3">开始你的咨询行业探索</h2>
+                <p class="text-slate-600">基于真实从业者经验，为你解答一切求职困惑</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <!-- 左侧：对话引导 -->
+                <div class="lg:col-span-3">
+                    <div class="shadow-lg rounded-xl overflow-hidden bg-white border border-slate-200" style="height: 500px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);">
+                        <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-5">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-slate-900 mb-2">准备好开始对话了吗？</h3>
+                        <p class="text-slate-500 text-sm mb-6 max-w-xs leading-relaxed">点击下方按钮进入 AI 对话窗口，所有回答基于 50+ 位真实从业者分享</p>
+                        <button onclick="startChat()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-medium hover:bg-blue-700 transition shadow-lg shadow-blue-600/20">
+                            开始对话
+                        </button>
+                        <p class="text-slate-400 text-xs mt-4">将在新标签页打开 Coze 对话窗口</p>
+                    </div>
+                </div>
 
-    async function sendMessage() {
-      const text = userInput.value.trim();
-      if (!text) return;
-      addMessage(text, true);
-      userInput.value = '';
-      sendBtn.disabled = true;
-      addLoading();
+                <!-- 右侧：推荐问题 -->
+                <div class="lg:col-span-2">
+                    <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                        <span class="text-blue-600">💡</span> 试试这样问
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition" onclick="startChat()">
+                            <p class="text-slate-700 font-medium text-sm">咨询行业现在还值得进吗？</p>
+                            <p class="text-slate-400 text-xs mt-1">行业现状 · 性价比</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition" onclick="startChat()">
+                            <p class="text-slate-700 font-medium text-sm">非 Target School 能进 MBB 吗？</p>
+                            <p class="text-slate-400 text-xs mt-1">进入门槛 · 学历要求</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition" onclick="startChat()">
+                            <p class="text-slate-700 font-medium text-sm">咨询顾问真实的一天是什么样的？</p>
+                            <p class="text-slate-400 text-xs mt-1">工作体验 · 加班出差</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition" onclick="startChat()">
+                            <p class="text-slate-700 font-medium text-sm">AI 冲击下，咨询行业会消失吗？</p>
+                            <p class="text-slate-400 text-xs mt-1">行业趋势 · 未来展望</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-      try {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text })
-        });
-        const data = await response.json();
-        removeLoading();
-        if (data.reply) {
-          addMessage(data.reply, false);
-        } else {
-          addMessage('抱歉，获取回答失败，请稍后重试。', false);
+    <!-- 信息维度 -->
+    <section class="py-20 bg-slate-50">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-slate-900 mb-3">我们能为你解答什么</h2>
+                <p class="text-slate-600">5 大核心维度，覆盖咨询求职全流程</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl hover-lift">
+                    <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-4 text-blue-600 text-lg">🎓</div>
+                    <h3 class="font-semibold text-slate-900 mb-2">进入门槛</h3>
+                    <p class="text-slate-600 text-sm">Target School、学历要求、实习经历、Case能力、语言门槛</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl hover-lift">
+                    <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center mb-4 text-green-600 text-lg">📈</div>
+                    <h3 class="font-semibold text-slate-900 mb-2">成长路径</h3>
+                    <p class="text-slate-600 text-sm">Analyst 到 Partner 的完整晋升路线、每阶段年限与能力要求</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl hover-lift">
+                    <div class="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center mb-4 text-orange-600 text-lg">⏰</div>
+                    <h3 class="font-semibold text-slate-900 mb-2">工作体验</h3>
+                    <p class="text-slate-600 text-sm">真实加班强度、出差频率、项目类型、团队氛围</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl hover-lift">
+                    <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center mb-4 text-purple-600 text-lg">📊</div>
+                    <h3 class="font-semibold text-slate-900 mb-2">行业现状</h3>
+                    <p class="text-slate-600 text-sm">AI 冲击下的业务转型、招聘趋势、市场收缩与机遇</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl hover-lift lg:col-span-2 lg:col-start-2">
+                    <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center mb-4 text-red-600 text-lg">💰</div>
+                    <h3 class="font-semibold text-slate-900 mb-2">薪资性价比</h3>
+                    <p class="text-slate-600 text-sm">起薪、涨幅、与互联网/金融对比、投入回报比、常见退出路径</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 关于原理 -->
+    <section id="about" class="py-20 bg-white">
+        <div class="max-w-3xl mx-auto px-6">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-slate-900 mb-3">信息从何而来？</h2>
+                <p class="text-slate-600">透明、可追溯的信息处理流程</p>
+            </div>
+            <div class="space-y-8">
+                <div class="flex gap-4">
+                    <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm shrink-0">1</div>
+                    <div>
+                        <h4 class="font-semibold text-slate-900 mb-1">真实采集</h4>
+                        <p class="text-slate-600 text-sm">我们从小红书、脉脉、知乎等平台手动筛选 50+ 篇真实从业者分享，涵盖 MBB、四大、精品咨询等多类公司。</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm shrink-0">2</div>
+                    <div>
+                        <h4 class="font-semibold text-slate-900 mb-1">向量化处理</h4>
+                        <p class="text-slate-600 text-sm">通过 AI 向量化技术，将非结构化的帖子内容转化为可检索的知识库，建立语义关联。</p>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm shrink-0">3</div>
+                    <div>
+                        <h4 class="font-semibold text-slate-900 mb-1">智能回答</h4>
+                        <p class="text-slate-600 text-sm">当你提问时，AI 从知识库中提取最相关的信息，结构化生成回答，并明确标注每一条观点的来源。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-12">
+        <div class="max-w-6xl mx-auto px-6 text-center">
+            <div class="flex items-center justify-center gap-2 mb-4">
+                <div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">咨</div>
+                <span class="text-white font-semibold">咨询求职小助手</span>
+            </div>
+            <p class="text-sm mb-2">© 2025 咨询求职小助手</p>
+            <p class="text-xs text-slate-500">本工具信息源于公开社区分享，仅供求职参考，不构成职业建议</p>
+        </div>
+    </footer>
+
+    <script>
+        function startChat() {
+            window.open('https://www.coze.cn/store/agent/7664644185815515186?bot_id=true', '_blank');
         }
-      } catch (error) {
-        removeLoading();
-        addMessage('网络错误，请检查连接后重试。', false);
-      }
-      sendBtn.disabled = false;
-      userInput.focus();
-    }
-  </script>
+    </script>
 </body>
 </html>
