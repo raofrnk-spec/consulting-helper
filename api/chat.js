@@ -10,8 +10,8 @@ export default async function handler(req, res) {
   const { message } = req.body;
   
   try {
-    // 调用 Coze Open API
-    const response = await fetch('https://api.coze.cn/open_api/v1/chat', {
+    // 调用 Coze v3/chat API（正确的官方接口）
+    const response = await fetch('https://api.coze.cn/v3/chat', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.COZE_TOKEN}`,
@@ -19,20 +19,42 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         bot_id: '7664644185815515186',
-        user: 'web-user-' + Date.now(),
-        query: message,
+        user_id: 'web-user-' + Date.now(),
+        stream: false,
+        additional_messages: [
+          {
+            role: 'user',
+            content: message,
+            content_type: 'text'
+          }
+        ]
       }),
     });
 
     const data = await response.json();
     
-    // 兼容多种可能的响应格式
-    const reply = data.answer || data.content || data.data?.answer || data.messages?.[0]?.content || data.reply;
+    // 从响应中提取回答（Coze v3 返回格式）
+    // 非流式响应会在 data 中包含消息列表
+    let reply = '';
+    let sources = [];
+    
+    if (data.data && data.data.messages) {
+      // 找到 type=answer 的消息
+      const answerMsg = data.data.messages.find(m => m.type === 'answer');
+      if (answerMsg) {
+        reply = answerMsg.content;
+      }
+    } else if (data.data && data.data.content) {
+      reply = data.data.content;
+    } else if (data.msg) {
+      // 如果有错误信息
+      reply = 'API 错误：' + data.msg;
+    }
     
     if (reply) {
-      res.status(200).json({ reply, sources: data.sources || [] });
+      res.status(200).json({ reply, sources });
     } else {
-      res.status(200).json({ reply: '获取回答失败，请检查 Coze API 配置。', sources: [] });
+      res.status(200).json({ reply: '获取回答失败，API 返回格式异常。', sources: [] });
     }
   } catch (error) {
     console.error('API Error:', error);
