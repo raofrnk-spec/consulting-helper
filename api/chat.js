@@ -32,13 +32,14 @@ export default async function handler(req, res) {
 
     const createData = await createRes.json();
     
-    if (!createData.data || !createData.data.conversation_id) {
+    if (!createData.data || !createData.data.id) {
       return res.status(200).json({ 
         reply: '创建对话失败：' + JSON.stringify(createData),
         sources: []
       });
     }
 
+    const chatId = createData.data.id;           // 注意：是 id，不是 conversation_id
     const conversationId = createData.data.conversation_id;
     
     // 第二步：轮询查询结果（最多等 15 秒）
@@ -49,7 +50,8 @@ export default async function handler(req, res) {
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 1000)); // 等 1 秒
       
-      const queryRes = await fetch(`https://api.coze.cn/v3/chat?conversation_id=${conversationId}&bot_id=7664644185815515186`, {
+      // 正确的查询端点：v3/chat/retrieve
+      const queryRes = await fetch(`https://api.coze.cn/v3/chat/retrieve?chat_id=${chatId}&conversation_id=${conversationId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${process.env.COZE_TOKEN}`,
@@ -60,12 +62,23 @@ export default async function handler(req, res) {
       const queryData = await queryRes.json();
       
       if (queryData.data && queryData.data.status === 'completed') {
-        // 找到 answer 类型的消息
-        const messages = queryData.data.messages || [];
-        const answerMsg = messages.find(m => m.type === 'answer');
-        if (answerMsg && answerMsg.content) {
-          answer = answerMsg.content;
-          break;
+        // 第三步：获取消息列表，找到 answer
+        const msgRes = await fetch(`https://api.coze.cn/v3/chat/message/list?chat_id=${chatId}&conversation_id=${conversationId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.COZE_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        const msgData = await msgRes.json();
+        
+        if (msgData.data && Array.isArray(msgData.data)) {
+          const answerMsg = msgData.data.find(m => m.type === 'answer' && m.role === 'assistant');
+          if (answerMsg && answerMsg.content) {
+            answer = answerMsg.content;
+            break;
+          }
         }
       }
       
